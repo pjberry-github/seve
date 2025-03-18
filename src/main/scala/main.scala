@@ -7,6 +7,9 @@ def main(): Unit =
   println(thing._1)
   println(thing._2)
 
+  val tuple = Tuple.fromProductTyped(thing)
+  println(tuple)
+
 
 case class Thing(parameterOne: String, parameterTwo: Int)
 
