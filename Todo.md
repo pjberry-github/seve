@@ -1,0 +1,4 @@
+- [ ] html form in laminar
+- [ ] specific case class to html form
+- [ ] abstracted case class to html form (extends/ is a special type)
+- [ ] any case class used in a specific context to form
