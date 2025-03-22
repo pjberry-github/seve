@@ -6,3 +6,7 @@ lazy val root = (project in file("."))
   .settings(
     name := "seve"
   )
+
+scalacOptions ++= Seq(
+  "-explain"
+)
