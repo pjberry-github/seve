@@ -9,18 +9,8 @@ def main(): Unit =
 
   demoSummonMirror()
 
+  println()
 
-def demoSummonMirror(): Unit =
-  val caseClassProduct = CaseClassProduct("a", 1)
-
-  val mirror = summon[Mirror.ProductOf[CaseClassProduct]]
-
-  val mirrorProductCompilerTuple = Tuple.fromProductTyped(caseClassProduct)(using mirror)
-  val mirrorProductCompilerCaseClass = mirror.fromProduct(mirrorProductCompilerTuple) // remember, Tuple and `case class` are both products
-
-  println("***  Summon  ***")
-  println(mirrorProductCompilerTuple)     //(a,1)
-  println(mirrorProductCompilerCaseClass) //CaseClassProduct(a,1)
 
 def demoManualMirror(): Unit =
   val caseClassProduct = CaseClassProduct("a", 1)
@@ -42,7 +32,17 @@ def demoManualMirror(): Unit =
   println(mirrorProductManualTuple)     //(a,1)
   println(mirrorProductManualCaseClass) //CaseClassProduct(a,1)
 
+def demoSummonMirror(): Unit =
+  val caseClassProduct = CaseClassProduct("a", 1)
 
+  val mirror = summon[Mirror.ProductOf[CaseClassProduct]]
+
+  val mirrorProductCompilerTuple = Tuple.fromProductTyped(caseClassProduct)(using mirror)
+  val mirrorProductCompilerCaseClass = mirror.fromProduct(mirrorProductCompilerTuple) // remember, Tuple and `case class` are both products
+
+  println("***  Summon  ***")
+  println(mirrorProductCompilerTuple)     //(a,1)
+  println(mirrorProductCompilerCaseClass) //CaseClassProduct(a,1)
 
 case class CaseClassProduct(parameterOne: String, parameterTwo: Int)
 
