@@ -13,7 +13,7 @@ def main(): Unit =
 def demoSummonMirror(): Unit =
   val caseClassProduct = CaseClassProduct("a", 1)
 
-  val mirror: ProductOf[CaseClassProduct] = summon[Mirror.ProductOf[CaseClassProduct]]
+  val mirror = summon[Mirror.ProductOf[CaseClassProduct]]
 
   val mirrorProductCompilerTuple = Tuple.fromProductTyped(caseClassProduct)(using mirror)
   val mirrorProductCompilerCaseClass = mirror.fromProduct(mirrorProductCompilerTuple) // remember, Tuple and `case class` are both products
