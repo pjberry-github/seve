@@ -1,21 +1,22 @@
-import scala.deriving.Mirror
-import scala.deriving.Mirror.ProductOf
+
 
 @main
 def main(): Unit =
-  demoManualMirror()
-
+  demonstrateMirrorProvided()
   println()
-
-  demoSummonMirror()
-
+  demonstrateMirrorSummonedThenUsed()
   println()
+  demonstrateWithoutSummoningMirror()
+  println()
+  demonstrateExtensionOnTuple()
 
 
-def demoManualMirror(): Unit =
+def demonstrateMirrorProvided(): Unit =
+  import scala.deriving.Mirror
+
   val caseClassProduct = CaseClassProduct("a", 1)
 
-  val mirrorProductManual: ProductOf[CaseClassProduct]= new Mirror.Product {
+  val mirrorProductManual: Mirror.ProductOf[CaseClassProduct]= new Mirror.Product {
     type MirroredType = CaseClassProduct
     type MirroredMonoType = CaseClassProduct
     type MirroredElemTypes <: Tuple
@@ -25,25 +26,59 @@ def demoManualMirror(): Unit =
     }
   }
 
-  val mirrorProductManualTuple = Tuple.fromProductTyped(caseClassProduct)(using mirrorProductManual)
-  val mirrorProductManualCaseClass = mirrorProductManual.fromProduct(mirrorProductManualTuple) // remember, Tuple and `case class` are both products
+  val tuple = Tuple.fromProductTyped(caseClassProduct)(using mirrorProductManual)
+  val caseClass = mirrorProductManual.fromProduct(tuple) // remember, Tuple and `case class` are both products
 
   println("***  Manual  ***")
-  println(mirrorProductManualTuple)     //(a,1)
-  println(mirrorProductManualCaseClass) //CaseClassProduct(a,1)
+  println(tuple)     //(a,1)
+  println(caseClass) //CaseClassProduct(a,1)
 
-def demoSummonMirror(): Unit =
-  val caseClassProduct = CaseClassProduct("a", 1)
+
+def demonstrateMirrorSummonedThenUsed(): Unit =
+  import scala.deriving.Mirror
+
+  val caseClassProduct = CaseClassProduct("b", 2)
 
   val mirror = summon[Mirror.ProductOf[CaseClassProduct]]
 
-  val mirrorProductCompilerTuple = Tuple.fromProductTyped(caseClassProduct)(using mirror)
-  val mirrorProductCompilerCaseClass = mirror.fromProduct(mirrorProductCompilerTuple) // remember, Tuple and `case class` are both products
+  val tuple = Tuple.fromProductTyped(caseClassProduct)(using mirror)
+  val caseClass = mirror.fromProduct(tuple) // remember, Tuple and `case class` are both products
 
   println("***  Summon  ***")
-  println(mirrorProductCompilerTuple)     //(a,1)
-  println(mirrorProductCompilerCaseClass) //CaseClassProduct(a,1)
+  println(tuple)     //(b,2)
+  println(caseClass) //CaseClassProduct(b,2)
+
+
+def demonstrateWithoutSummoningMirror(): Unit =
+  import scala.deriving.Mirror
+  val caseClassProduct = CaseClassProduct("c", 3)
+
+  val tuple = Tuple.fromProductTyped(caseClassProduct)
+  val caseClass = summon[Mirror.ProductOf[CaseClassProduct]].fromProduct(tuple)
+
+  println("***  Without Summoning Mirror  ***")
+  println(tuple)     //(c,3)
+  println(caseClass) //CaseClassProduct(c,3)
+
+
+def demonstrateExtensionOnTuple(): Unit =
+  val caseClassProduct = CaseClassProduct("d", 4)
+
+  val tuple = Tuple.fromProductTyped(caseClassProduct)
+  val caseClass = tuple.as[CaseClassProduct]
+
+  println("***  Without Summoning Mirror  ***")
+  println(tuple)     //(d,4)
+  println(caseClass) //CaseClassProduct(d,4)
+
 
 case class CaseClassProduct(parameterOne: String, parameterTwo: Int)
+
+extension (t: Tuple) {
+  def as[P <: Product](using m: scala.deriving.Mirror.ProductOf[P]): P = {
+    summon[deriving.Mirror.ProductOf[P]].fromProduct(t)
+  }
+}
+
 
 
