@@ -71,7 +71,19 @@ def demonstrateExtensionOnTuple(): Unit =
   println(tuple)     //(d,4)
   println(caseClass) //CaseClassProduct(d,4)
 
+@main
+def demonstrateNested(): Unit =
+  val caseClassProduct = CaseClassProduct("e", 5)
+  val containerCaseClass = ContainerCaseClass(caseClassProduct)
 
+  val tuple = Tuple.fromProductTyped(containerCaseClass)
+  val caseClass = tuple.as[ContainerCaseClass]
+
+  println("***  Nested  ***")
+  println(tuple)     //(d,4)
+  println(caseClass) //CaseClassProduct(d,4)
+
+case class ContainerCaseClass(caseClassProduct: CaseClassProduct)
 case class CaseClassProduct(parameterOne: String, parameterTwo: Int)
 
 extension (t: Tuple) {
