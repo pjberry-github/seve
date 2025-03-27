@@ -1,4 +1,4 @@
-
+import scala.:+
 
 @main
 def main(): Unit =
@@ -71,18 +71,18 @@ def demonstrateExtensionOnTuple(): Unit =
   println(tuple)     //(d,4)
   println(caseClass) //CaseClassProduct(d,4)
 
-@main
-def demonstrateNested(): Unit =
-  val caseClassProduct = CaseClassProduct("e", 5)
-  val containerCaseClass = ContainerCaseClass(caseClassProduct)
-
-  val tuple = Tuple.fromProductTyped(containerCaseClass)
-  val caseClass = tuple.as[ContainerCaseClass]
-
-  println("***  Nested  ***")
-  println(tuple)     //(d,4)
-  println(caseClass) //CaseClassProduct(d,4)
-
+//@main
+//def demonstrateNested(): Unit =
+//  val caseClassProduct = CaseClassProduct("e", 5)
+//  val containerCaseClass = ContainerCaseClass(caseClassProduct)
+//
+//  val tuple = Tuplifier.tuplify(containerCaseClass)
+//  val caseClass = tuple.as[ContainerCaseClass]
+//
+//  println("***  Nested  ***")
+//  println(tuple)     //(d,4)
+//  println(caseClass) //CaseClassProduct(d,4)
+//
 case class ContainerCaseClass(caseClassProduct: CaseClassProduct)
 case class CaseClassProduct(parameterOne: String, parameterTwo: Int)
 
@@ -92,5 +92,18 @@ extension (t: Tuple) {
   }
 }
 
+//object Tuplifier {
+//
+//  def tuplify[P <: Product](p: P, returnTuple: Tuple = EmptyTuple, remainingElements: Tuple = EmptyTuple)(using m: scala.deriving.Mirror.ProductOf[P]): Tuple = {
+//    Tuple.fromProduct(p) match
+//      case EmptyTuple => returnTuple
+//      case tuple: NonEmptyTuple =>
+//        tuple match {
+//          case head :* tail => tuplify(head, returnTuple :+ head, remainingElements)
+//        }
+//        tuplify(t.head, returnTuple :* t.head, t.tail)
+//  }
+//  
+//}
 
 
