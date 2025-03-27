@@ -7,6 +7,8 @@ lazy val root = (project in file("."))
     name := "seve"
   )
 
+libraryDependencies += "org.scalameta" %% "munit" % "1.0.4" % Test
+
 scalacOptions ++= Seq(
   "-explain"
 )
