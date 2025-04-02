@@ -141,7 +141,35 @@ class TypeClassTestSuite extends munit.FunSuite {
     assertEquals(BooleanYeller(true).yell(), "TRUE!")
     assertEquals(someTypeYeller.yell(), "INNER ARGUMENT 212 121!")
   }
-  
+
+  test("This isn't so bad.  We should clean this up.") {
+    trait Yeller[T](t: T, stringer: T => String):
+      def yell() = stringer(t).toUpperCase + "!"
+
+      /** this may be too "clever" and hacky */
+      def add[V](yeller: Yeller[V]) = {
+        new Yeller[String](this.yell().replace("!", "") + " " + yeller.yell().replace("!", ""), identity) {}
+      }
+
+    case class InnerCaseClassOne(argument: String)
+    case class InnerCaseClassTwo(argument: Int)
+    case class SomeType(argumentOne: InnerCaseClassOne, argumentTwo: Int, argumentThree: InnerCaseClassTwo)
+
+    /** Note how the value of T varies, but it's the same function T => String */
+    case class StringYeller(t: String) extends Yeller[String](t, identity)
+    case class IntYeller(t: Int) extends Yeller[Int](t, _.toString)
+    case class BooleanYeller(t: Boolean) extends Yeller[Boolean](t, _.toString)
+
+    case class InnerCaseClassOneYeller(t: InnerCaseClassOne) extends Yeller[InnerCaseClassOne](t, _.argument)
+    case class InnerCaseClassTwoYeller(t: InnerCaseClassTwo) extends Yeller[InnerCaseClassTwo](t, _.argument.toString)
+
+    val someTypeYeller = InnerCaseClassOneYeller(InnerCaseClassOne("inner argument")).add(IntYeller(212)).add(InnerCaseClassTwoYeller(InnerCaseClassTwo(121)))
+
+    assertEquals(StringYeller("hey").yell(), "HEY!")
+    assertEquals(IntYeller(212).yell(), "212!")
+    assertEquals(BooleanYeller(true).yell(), "TRUE!")
+    assertEquals(someTypeYeller.yell(), "INNER ARGUMENT 212 121!")
+  }
 
   test("Wait, shouldn't these things live with their respective classes?") {
     object Yeller:
