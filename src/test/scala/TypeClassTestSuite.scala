@@ -107,6 +107,42 @@ class TypeClassTestSuite extends munit.FunSuite {
     assertEquals(Yeller.yell(SomeType(InnerCaseClassOne("inner argument"), 212, InnerCaseClassTwo(121)), someTypeStringer), "INNER ARGUMENT 212 121!")
   }
 
+  test("Can we make the composition part of the abstraction?") {
+    trait Yeller[T](t: T, stringer: T => String):
+      def yell() = stringer(t).toUpperCase + "!"
+
+      /** this may be too "clever" and hacky */
+      def add[V](yeller: Yeller[V]) = new Yeller[String](this.yell().replace("!", "") + " " + yeller.yell().replace("!", ""), identity) {}
+
+    case class InnerCaseClassOne(argument: String)
+    case class InnerCaseClassTwo(argument: Int)
+    case class SomeType(argumentOne: InnerCaseClassOne, argumentTwo: Int, argumentThree: InnerCaseClassTwo)
+
+    /** Note how the value of T varies, but it's the same function T => String */
+    val stringStringer: String => String = s => identity(s)
+    case class StringYeller(t: String) extends Yeller[String](t, stringStringer)
+
+    val intStringer: Int => String = i => i.toString
+    case class IntYeller(t: Int) extends Yeller[Int](t, intStringer)
+
+    val booleanStringer: Boolean => String = b => b.toString
+    case class BooleanYeller(t: Boolean) extends Yeller[Boolean](t, booleanStringer)
+
+    val innerCaseClassOneStringer: InnerCaseClassOne => String = innerCaseClassOne => innerCaseClassOne.argument
+    case class InnerCaseClassOneYeller(t: InnerCaseClassOne) extends Yeller[InnerCaseClassOne](t, innerCaseClassOneStringer)
+
+    val innerCaseClassTwoStringer: InnerCaseClassTwo => String = innerCaseClassTwo => innerCaseClassTwo.argument.toString
+    case class InnerCaseClassTwoYeller(t: InnerCaseClassTwo) extends Yeller[InnerCaseClassTwo](t, innerCaseClassTwoStringer)
+
+    val someTypeYeller = InnerCaseClassOneYeller(InnerCaseClassOne("inner argument")).add(IntYeller(212)).add(InnerCaseClassTwoYeller(InnerCaseClassTwo(121)))
+
+    assertEquals(StringYeller("hey").yell(), "HEY!")
+    assertEquals(IntYeller(212).yell(), "212!")
+    assertEquals(BooleanYeller(true).yell(), "TRUE!")
+    assertEquals(someTypeYeller.yell(), "INNER ARGUMENT 212 121!")
+  }
+  
+
   test("Wait, shouldn't these things live with their respective classes?") {
     object Yeller:
       def yell[T](t: T, stringer: T => String) = stringer(t).toUpperCase + "!"
@@ -140,7 +176,7 @@ class TypeClassTestSuite extends munit.FunSuite {
     object SomeType {
       val stringer: SomeType => String = someType => InnerCaseClassOne.stringer(someType.argumentOne) + " " + someType.argumentTwo + " " + InnerCaseClassTwo.stringer(someType.argumentThree)
     }
-    
+
     assertEquals(Yeller.yell("hey", StringWrapper.stringer), "HEY!")
     assertEquals(Yeller.yell(212, IntWrapper.stringer), "212!")
     assertEquals(Yeller.yell(true, BooleanWrapper.stringer), "TRUE!")
