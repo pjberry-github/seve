@@ -396,7 +396,65 @@ class TypeClassTestSuite extends munit.FunSuite {
     assertEquals(InnerCaseClassOne("inner argument").add(212).add(InnerCaseClassTwo(121)).yell(), "INNER ARGUMENT 212 121!")
   }
 
+  test("Hot Dog!  That's something!  Let's clean it up.") {
+    /** We want to be able to make a Yeller, and another Yeller to one we have, or add a non-Yeller to the one we have */
+    trait Yeller[T](t: T)(using stringerFunc: T => String):
+      val value: T = t
+      val stringer: T => String = stringerFunc
 
+      def yell() = stringer(t).toUpperCase + "!"
+
+      /** this is actually letting us go from Yeller[V] => Yeller[String] */
+      def add[V](yeller: Yeller[V]) = {
+        val asString = stringer(this.value) + " " + yeller.stringer(yeller.value)
+        new Yeller[String](asString) {}
+      }
+
+      /** this is actually letting us go from V => Yeller[String] */
+      def add[V](v: V)(using stringerFunc: V => String) = {
+        val vYeller = new Yeller[V](v) {}
+        val asString = stringer(this.value) + " " + vYeller.stringer(vYeller.value)
+        new Yeller[String](asString) {}
+      }
+
+    case class InnerCaseClassOne(argument: String)
+    case class InnerCaseClassTwo(argument: Int)
+    case class SomeType(argumentOne: InnerCaseClassOne, argumentTwo: Int, argumentThree: InnerCaseClassTwo)
+
+    /** We define ways to get a T to become a String */
+    given stringStringer: Function1[String, String] = identity
+    given intStringer: (Int => String) = i => i.toString
+    given booleanString: (Boolean => String) = b => b.toString
+    given innerCaseClassOneStringer: (InnerCaseClassOne => String) = innerCaseClassOne => innerCaseClassOne.argument
+    given innerCaseClassTwoStringer: (InnerCaseClassTwo => String) = innerCaseClassTwo => innerCaseClassTwo.argument.toString
+
+    /** We put them in objects here to prevent def name collisions */
+    object InnerCaseClassOne {
+      extension (innerClassOne: InnerCaseClassOne)
+        def add[T](t: T)(using stringer: T => String): Yeller[String] = {
+          val yeller = new Yeller(innerClassOne.argument) {}
+          yeller.add(new Yeller[T](t) {})
+        }
+    }
+
+    object InnerCaseClassTwo  {
+      extension (innerClassTwo: InnerCaseClassTwo)
+        def add[T](t: T)(using stringer: T => String): Yeller[String] = {
+          val yeller = new Yeller(innerClassTwo.argument.toString) {}
+          yeller.add(new Yeller[T](t) {})
+        }
+    }
+
+    case class StringYeller(t: String) extends Yeller[String](t)
+    case class IntYeller(t: Int) extends Yeller[Int](t)
+    case class BooleanYeller(t: Boolean) extends Yeller[Boolean](t)
+
+    assertEquals(StringYeller("hey").yell(), "HEY!")
+    assertEquals(IntYeller(212).yell(), "212!")
+    assertEquals(BooleanYeller(true).yell(), "TRUE!")
+
+    assertEquals(InnerCaseClassOne("inner argument").add(212).add(InnerCaseClassTwo(121)).yell(), "INNER ARGUMENT 212 121!")
+  }
 
   test("Wait, shouldn't these things live with their respective classes?") {
     object Yeller:
