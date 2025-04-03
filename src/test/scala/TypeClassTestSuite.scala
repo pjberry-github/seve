@@ -249,7 +249,7 @@ class TypeClassTestSuite extends munit.FunSuite {
     given booleanString: (Boolean => String) = b => b.toString
     given innerCaseClassOneStringer: (InnerCaseClassOne => String) = innerCaseClassOne => innerCaseClassOne.argument
     given innerCaseClassTwoStringer: (InnerCaseClassTwo => String) = innerCaseClassTwo => innerCaseClassTwo.argument.toString
-    
+
     trait Yeller[T](t: T)(using stringerFunc: T => String):
       val value: T = t
       val stringer: T => String = stringerFunc
@@ -275,6 +275,61 @@ class TypeClassTestSuite extends munit.FunSuite {
     assertEquals(IntYeller(212).yell(), "212!")
     assertEquals(BooleanYeller(true).yell(), "TRUE!")
     assertEquals(someTypeYeller.yell(), "INNER ARGUMENT 212 121!")
+  }
+
+  test("Maybe it's a matter of defining a way for each class of interest to add or string?") {
+    case class InnerCaseClassOne(argument: String)
+    case class InnerCaseClassTwo(argument: Int)
+    case class SomeType(argumentOne: InnerCaseClassOne, argumentTwo: Int, argumentThree: InnerCaseClassTwo)
+
+    given stringStringer: Function1[String, String] = identity
+    given intStringer: (Int => String) = i => i.toString
+    given booleanString: (Boolean => String) = b => b.toString
+    given innerCaseClassOneStringer: (InnerCaseClassOne => String) = innerCaseClassOne => innerCaseClassOne.argument
+    given innerCaseClassTwoStringer: (InnerCaseClassTwo => String) = innerCaseClassTwo => innerCaseClassTwo.argument.toString
+
+    trait Yeller[T](t: T)(using stringerFunc: T => String):
+      val value: T = t
+      val stringer: T => String = stringerFunc
+
+      def yell() = stringer(t).toUpperCase + "!"
+
+      def add[V](yeller: Yeller[V]) = {
+        val asString = stringer(this.value) + " " + yeller.stringer(yeller.value)
+        new Yeller[String](asString) {}
+      }
+
+    object InnerCaseClassOne {
+      extension (innerClassOne: InnerCaseClassOne)
+        def asYeller: Yeller[String] = new Yeller(innerClassOne.argument) {}
+
+        def add[T](t: T)(using stringer: T => String): Yeller[String] = innerClassOne.asYeller.add(new Yeller[T](t) {})
+    }
+
+
+    extension (innerClassTwo: InnerCaseClassTwo)
+      def asYeller: Yeller[String] = new Yeller(innerClassTwo.argument.toString) {}
+
+      def add[T](t: T)(using stringer: T => String): Yeller[String] = innerClassTwo.asYeller.add(new Yeller[T](t) {})
+
+
+    InnerCaseClassOne("inner argument").add(212).add(InnerCaseClassTwo(121).asYeller)
+
+    /** Note how the value of T varies, but it's the same function T => String */
+    case class StringYeller(t: String) extends Yeller[String](t)
+    case class IntYeller(t: Int) extends Yeller[Int](t)
+    case class BooleanYeller(t: Boolean) extends Yeller[Boolean](t)
+    case class InnerCaseClassOneYeller(t: InnerCaseClassOne) extends Yeller[InnerCaseClassOne](t)
+    case class InnerCaseClassTwoYeller(t: InnerCaseClassTwo) extends Yeller[InnerCaseClassTwo](t)
+
+    val someTypeYeller = InnerCaseClassOneYeller(InnerCaseClassOne("inner argument")).add(IntYeller(212)).add(InnerCaseClassTwoYeller(InnerCaseClassTwo(121)))
+
+    assertEquals(StringYeller("hey").yell(), "HEY!")
+    assertEquals(IntYeller(212).yell(), "212!")
+    assertEquals(BooleanYeller(true).yell(), "TRUE!")
+
+    /** it still has that asYeller...  I think the add is needs to be non-yeller in the trait */
+    assertEquals(InnerCaseClassOne("inner argument").add(212).add(InnerCaseClassTwo(121).asYeller).yell(), "INNER ARGUMENT 212 121!")
   }
 
   test("Wait, shouldn't these things live with their respective classes?") {
