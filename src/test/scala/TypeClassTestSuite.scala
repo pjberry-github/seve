@@ -397,7 +397,7 @@ class TypeClassTestSuite extends munit.FunSuite {
   }
 
   test("Hot Dog!  That's something!  Let's clean it up.") {
-    /** We want to be able to make a Yeller, and another Yeller to one we have, or add a non-Yeller to the one we have */
+    /** We want to be able to make a Yeller, add another Yeller to one we have, or add a non-Yeller to the one we have */
     trait Yeller[T](t: T)(using stringerFunc: T => String):
       val value: T = t
       val stringer: T => String = stringerFunc
@@ -454,6 +454,47 @@ class TypeClassTestSuite extends munit.FunSuite {
     assertEquals(BooleanYeller(true).yell(), "TRUE!")
 
     assertEquals(InnerCaseClassOne("inner argument").add(212).add(InnerCaseClassTwo(121)).yell(), "INNER ARGUMENT 212 121!")
+  }
+
+  test("Seems like we just want a way to make a Yeller, and then add types to it.") {
+    trait Yeller[T](t: T)(using stringerFunc: T => String):
+      val value: T = t
+      val stringer: T => String = stringerFunc
+
+      def yell() = stringer(t).toUpperCase + "!"
+
+      /** just add a thing to it */
+      def add[V](v: V)(using stringerFunc: V => String) = {
+        val vYeller = new Yeller[V](v) {}
+        val asString = stringer(this.value) + " " + vYeller.stringer(vYeller.value)
+        new Yeller[String](asString) {}
+      }
+
+    object Yeller {
+      def apply[T](t: T)(using stringerFunc: T => String) = {
+        val yeller = new Yeller[T](t) {}
+        val asString = stringerFunc(t)
+        new Yeller[String](asString) {}
+      }
+    }
+
+    case class InnerCaseClassOne(argument: String)
+    case class InnerCaseClassTwo(argument: Int)
+    case class SomeType(argumentOne: InnerCaseClassOne, argumentTwo: Int, argumentThree: InnerCaseClassTwo)
+
+    /** We define ways to get strings */
+    given stringStringer: Function1[String, String] = identity
+    given intStringer: (Int => String) = i => i.toString
+    given booleanString: (Boolean => String) = b => b.toString
+    given innerCaseClassOneStringer: (InnerCaseClassOne => String) = innerCaseClassOne => innerCaseClassOne.argument
+    given innerCaseClassTwoStringer: (InnerCaseClassTwo => String) = innerCaseClassTwo => innerCaseClassTwo.argument.toString
+
+    assertEquals(Yeller("hey").yell(), "HEY!")
+    assertEquals(Yeller(212).yell(), "212!")
+    assertEquals(Yeller(true).yell(), "TRUE!")
+
+    val yeller = Yeller(InnerCaseClassOne("inner argument")).add(212).add(InnerCaseClassTwo(121))
+    assertEquals(yeller.yell(), "INNER ARGUMENT 212 121!")
   }
 
   test("Wait, shouldn't these things live with their respective classes?") {
