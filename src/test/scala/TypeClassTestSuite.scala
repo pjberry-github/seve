@@ -497,6 +497,56 @@ class TypeClassTestSuite extends munit.FunSuite {
     assertEquals(yeller.yell(), "INNER ARGUMENT 212 121!")
   }
 
+  test("Seems like we can clean this up some more") {
+    trait Yeller[T](t: T):
+      val value: T = t
+
+      def yell()(using stringerFunc: T => String) = stringerFunc(t).toUpperCase + "!"
+
+      /** just add a thing to it, provided we know the stringer for T and V */
+      def add[V](v: V)(using stringerFuncV: V => String, stringerFuncT: T => String) = {
+        val vYeller = new Yeller[V](v) {}
+        val asString = stringerFuncT(this.value) + " " + stringerFuncV(vYeller.value)
+        new Yeller[String](asString) {}
+      }
+
+    object Yeller {
+
+      /** some basic types */
+      given (String => String) = s => identity(s)
+      given (Int => String) = i => i.toString
+      given (Boolean => String) = b => b.toString
+
+      def apply[T](t: T)(using stringerFunc: T => String) = {
+        val yeller = new Yeller[T](t) {}
+        val asString = stringerFunc(t)
+        new Yeller[String](asString) {}
+      }
+    }
+
+    case class InnerCaseClassOne(argument: String)
+    object InnerCaseClassOne {
+      given (InnerCaseClassOne => String) = innerCaseClassOne => innerCaseClassOne.argument
+    }
+
+    case class InnerCaseClassTwo(argument: Int)
+    object InnerCaseClassTwo {
+      given (InnerCaseClassTwo => String) = innerCaseClassTwo => innerCaseClassTwo.argument.toString
+    }
+    
+    case class SomeType(argumentOne: InnerCaseClassOne, argumentTwo: Int, argumentThree: InnerCaseClassTwo)
+
+    /** really like the way this reads... */
+    import Yeller.given
+    assertEquals(Yeller("hey").yell(), "HEY!")
+    assertEquals(Yeller(212).yell(), "212!")
+    assertEquals(Yeller(true).yell(), "TRUE!")
+
+    val yeller = Yeller(InnerCaseClassOne("inner argument")).add(212).add(InnerCaseClassTwo(121))
+    assertEquals(yeller.yell(), "INNER ARGUMENT 212 121!")
+  }
+
+
   test("Wait, shouldn't these things live with their respective classes?") {
     object Yeller:
       def yell[T](t: T, stringer: T => String) = stringer(t).toUpperCase + "!"
