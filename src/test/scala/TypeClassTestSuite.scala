@@ -177,7 +177,7 @@ class TypeClassTestSuite extends munit.FunSuite {
       val stringer: T => String = stringerFunc
 
       def yell() = stringer(t).toUpperCase + "!"
-      
+
       def add[V](yeller: Yeller[V]) = {
         val asString = stringer(this.value) + " " + yeller.stringer(yeller.value)
         new Yeller[String](asString, identity) {}
@@ -194,6 +194,41 @@ class TypeClassTestSuite extends munit.FunSuite {
 
     case class InnerCaseClassOneYeller(t: InnerCaseClassOne) extends Yeller[InnerCaseClassOne](t, _.argument)
     case class InnerCaseClassTwoYeller(t: InnerCaseClassTwo) extends Yeller[InnerCaseClassTwo](t, _.argument.toString)
+
+    val someTypeYeller = InnerCaseClassOneYeller(InnerCaseClassOne("inner argument")).add(IntYeller(212)).add(InnerCaseClassTwoYeller(InnerCaseClassTwo(121)))
+
+    assertEquals(StringYeller("hey").yell(), "HEY!")
+    assertEquals(IntYeller(212).yell(), "212!")
+    assertEquals(BooleanYeller(true).yell(), "TRUE!")
+    assertEquals(someTypeYeller.yell(), "INNER ARGUMENT 212 121!")
+  }
+
+  /** we note that the value of T isn't going to change how T is converted into a string (at least for what we are doing)
+   *  and, we might want to have some convenient way of "storing" how a T is converted.
+   * */
+  test("Set up using") {
+    trait Yeller[T](t: T)(using stringerFunc: T => String):
+      val value: T = t
+      val stringer: T => String = stringerFunc
+
+      def yell() = stringer(t).toUpperCase + "!"
+
+      def add[V](yeller: Yeller[V]) = {
+        val asString = stringer(this.value) + " " + yeller.stringer(yeller.value)
+        new Yeller[String](asString) {}
+      }
+
+    case class InnerCaseClassOne(argument: String)
+    case class InnerCaseClassTwo(argument: Int)
+    case class SomeType(argumentOne: InnerCaseClassOne, argumentTwo: Int, argumentThree: InnerCaseClassTwo)
+
+    /** Note how the value of T varies, but it's the same function T => String */
+    case class StringYeller(t: String) extends Yeller[String](t)(using identity)
+    case class IntYeller(t: Int) extends Yeller[Int](t)(using _.toString)
+    case class BooleanYeller(t: Boolean) extends Yeller[Boolean](t)(using _.toString)
+
+    case class InnerCaseClassOneYeller(t: InnerCaseClassOne) extends Yeller[InnerCaseClassOne](t)(using _.argument)
+    case class InnerCaseClassTwoYeller(t: InnerCaseClassTwo) extends Yeller[InnerCaseClassTwo](t)(using _.argument.toString)
 
     val someTypeYeller = InnerCaseClassOneYeller(InnerCaseClassOne("inner argument")).add(IntYeller(212)).add(InnerCaseClassTwoYeller(InnerCaseClassTwo(121)))
 
