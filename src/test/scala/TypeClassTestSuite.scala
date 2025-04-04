@@ -1,3 +1,5 @@
+import scala.compiletime.summonInline
+import scala.deriving.Mirror
 
 class TypeClassTestSuite extends munit.FunSuite {
 
@@ -533,7 +535,7 @@ class TypeClassTestSuite extends munit.FunSuite {
     object InnerCaseClassTwo {
       given (InnerCaseClassTwo => String) = innerCaseClassTwo => innerCaseClassTwo.argument.toString
     }
-    
+
     case class SomeType(argumentOne: InnerCaseClassOne, argumentTwo: Int, argumentThree: InnerCaseClassTwo)
 
     /** really like the way this reads... */
@@ -546,6 +548,78 @@ class TypeClassTestSuite extends munit.FunSuite {
     assertEquals(yeller.yell(), "INNER ARGUMENT 212 121!")
   }
 
+
+  test("Let's try some tuples!") {
+    trait Yeller[T](t: T):
+      val value: T = t
+
+      def yell()(using stringerFunc: T => String) = stringerFunc(t).toUpperCase + "!"
+
+      /** just add a thing to it, provided we know the stringer for T and V */
+      def add[V](v: V)(using stringerFuncV: V => String, stringerFuncT: T => String) = {
+        val vYeller = new Yeller[V](v) {}
+
+        val stringT = stringerFuncT(this.value)
+        val firstPart = if (stringT.nonEmpty) stringT + " " else ""
+        val secondPart = stringerFuncV(vYeller.value)
+        val asString = firstPart + secondPart
+        new Yeller[String](asString) {}
+      }
+
+    object Yeller {
+
+      /** some basic types */
+      given (String => String) = s => identity(s)
+      given (Int => String) = i => i.toString
+      given (Boolean => String) = b => b.toString
+
+      def apply[T](t: T)(using stringerFunc: T => String) = {
+        val yeller = new Yeller[T](t) {}
+        val asString = stringerFunc(t)
+        new Yeller[String](asString) {}
+      }
+    }
+
+    case class InnerCaseClassOne(argument: String)
+    object InnerCaseClassOne {
+      given (InnerCaseClassOne => String) = innerCaseClassOne => innerCaseClassOne.argument
+    }
+
+    case class InnerCaseClassTwo(argument: Int)
+    object InnerCaseClassTwo {
+      given (InnerCaseClassTwo => String) = innerCaseClassTwo => innerCaseClassTwo.argument.toString
+    }
+
+    case class SomeType(argumentOne: InnerCaseClassOne, argumentTwo: Int, argumentThree: InnerCaseClassTwo)
+
+    val someType = SomeType(InnerCaseClassOne("inner argument"), 212, InnerCaseClassTwo(121))
+
+    val tuple = Tuple.fromProductTyped(someType)
+
+    import Yeller.given
+    // https://rockthejvm.com/articles/scala-3-type-level-programming#user-content-fnref-patternmatching
+    inline def yellTuple(tuple: Tuple, yeller: Yeller[String]): Yeller[String] = {
+      inline tuple match {
+        case EmptyTuple =>
+          yeller
+        case tup: (h *: t) =>
+          val myGiven = compiletime.summonInline[h => String]
+          yellTuple(tup.tail, yeller.add(tup.head)(using myGiven))
+      }
+    }
+
+    val someTypeYeller = yellTuple(tuple, Yeller(""))
+    assertEquals(someTypeYeller.yell(), "INNER ARGUMENT 212 121!")
+
+    /** really like the way this reads... */
+    import Yeller.given
+    assertEquals(Yeller("hey").yell(), "HEY!")
+    assertEquals(Yeller(212).yell(), "212!")
+    assertEquals(Yeller(true).yell(), "TRUE!")
+
+    val yeller = Yeller(InnerCaseClassOne("inner argument")).add(212).add(InnerCaseClassTwo(121))
+    assertEquals(yeller.yell(), "INNER ARGUMENT 212 121!")
+  }
 
   test("Wait, shouldn't these things live with their respective classes?") {
     object Yeller:
