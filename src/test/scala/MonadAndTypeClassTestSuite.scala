@@ -1,7 +1,7 @@
 import scala.compiletime.summonInline
 import scala.deriving.Mirror
 
-class TypeClassTestSuite extends munit.FunSuite {
+class MonadAndTypeClassTestSuite extends munit.FunSuite {
 
   /*
     - Type Classes are "things" that allow polymorphism without have to extend the "thing"
