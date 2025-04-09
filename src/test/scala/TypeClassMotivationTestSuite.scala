@@ -105,12 +105,10 @@ class TypeClassMotivationTestSuite extends munit.FunSuite {
    * What we are doing with YellerAdapter is old-fashioned polymorphism.  For the YellerAdapter, we have many different
    * implementations.
    *
-   * We can use Scala's type classes to achieve the same result.
+   * We can use a type classes to achieve the same result.  Type Classes are "things" that allow polymorphism without
+   * have to extend the "thing".  In our case, it will be the `YellerAdapter`
    *
-   * Type Classes are "things" that allow polymorphism without have to extend the "thing".  In our case, it will be the
-   * `YellerAdapter`
-   *
-   * An implementation of the "thing" is done by Scala's `Given Instances`.
+   * We can use Scala's contextual abstractions--specifically, given and using statements--to achieve this.
    *
    * A `Given Instance` defines "canonical" values of certain types and are used for providing values for
    * `Using Clauses`.
@@ -119,33 +117,43 @@ class TypeClassMotivationTestSuite extends munit.FunSuite {
    *  is, the compiler can figure out what the bits of code need to be in order for things to work.
    */
   test("What's it look like with a Type Class?") {
+     /** We make the type (string, int, whatever) for the adapter part of the signature */
     trait YellerAdapter[T] {
-      extension (t: T) def asString(): String
+      def asString(t: T): String
     }
 
+    /** If it's on the adapter, it needs to be on the Yeller, too.  Notice how the explicit argument t is the "primary" 
+     * argument and the contextual argument is what was the only argument--the YellerAdapter.
+     * 
+     * Essentially, we are saying for a T, there's something in the contextual soup that can tell you how to make a
+     * string.  If there's no ambiguity, the compiler uses it to make it work.
+     * */
     object Yeller {
-      def yell[T](yellee: YellerAdapter[T]) = yellee.asString().toUpperCase + "!"
-    }
-//
-//    case class SomeType(argument: String)
-//
-    given x: YellerAdapter[String] = YellerAdapter[String] with extension(s: String) {
-      def asString(): String = s
+      def yell[T](t: T)(using yellerAdapter: YellerAdapter[T]) = yellerAdapter.asString(t).toUpperCase + "!"
     }
 
-    //    given YellerAdapter[Int]:
-//      extension (int: Int) def yell: String = int.toString
-//
-//    given YellerAdapter[Boolean]:
-//      extension (boolean: Boolean) def yell: String = boolean.toString
-//
-//    given YellerAdapter[SomeType]:
-//      extension (someType: SomeType) def yell: String = someType.argument
-//
+    case class SomeType(argument: String)
+    
+    given stringYellerAdapter: YellerAdapter[String] =  new YellerAdapter[String]{
+      override def asString(t: String): String = t
+    }
+
+    given intYellerAdapter: YellerAdapter[Int] = new YellerAdapter[Int] {
+      override def asString(t: Int): String = t.toString
+    }
+
+    given booleanYellerAdapter: YellerAdapter[Boolean] = new YellerAdapter[Boolean] {
+      override def asString(t: Boolean): String = t.toString
+    }
+
+    given someTypeYellerAdapter: YellerAdapter[SomeType] = new YellerAdapter[SomeType] {
+      override def asString(t: SomeType): String = t.argument
+    }
+    
     assertEquals(Yeller.yell("hey"), "HEY!")
-//    assertEquals(Yeller.yell(212), "212!")
-//    assertEquals(Yeller.yell(true), "TRUE!")
-//    assertEquals(Yeller.yell(SomeType("argument")), "ARGUMENT!")
+    assertEquals(Yeller.yell(212), "212!")
+    assertEquals(Yeller.yell(true), "TRUE!")
+    assertEquals(Yeller.yell(SomeType("argument")), "ARGUMENT!")
   }
 
   test("Hey, we are going to need yell even more and I don't know what the types are!") {
