@@ -17,13 +17,13 @@ class TypeClassMotivationTestSuite extends munit.FunSuite {
 
     /** Consider something that takes a string and yells it */
     object Yeller_String:
-      def yell(string: String) = string.toUpperCase + "!"
+      def yell(string: String): String = string.toUpperCase + "!"
 
     assertEquals(Yeller_String.yell("hey"), "HEY!")
 
     /** What about if we need to yell about Ints? */
     object Yeller_Int:
-      def yell(i: Int) = i.toString + "!"
+      def yell(i: Int): String = i.toString + "!"
 
     assertEquals(Yeller_Int.yell(212), "212!")
   }
@@ -31,11 +31,10 @@ class TypeClassMotivationTestSuite extends munit.FunSuite {
   test("Hey, we are going to need to yell a whole bunch of types!") {
     /** At this point, we can use *adhoc polymorphism* via function overloading */
     object Yeller :
-      def yell(string: String) = string.toUpperCase + "!"
-      def yell(i: Int) = i.toString + "!"
-      def yell(boolean: Boolean) = boolean.toString.toUpperCase + "!"
-
-
+      def yell(string: String): String = string.toUpperCase + "!"
+      def yell(i: Int): String = i.toString + "!"
+      def yell(boolean: Boolean): String = boolean.toString.toUpperCase + "!"
+    
     assertEquals(Yeller.yell("hey"), "HEY!")
     assertEquals(Yeller.yell(212), "212!")
     assertEquals(Yeller.yell(true), "TRUE!")
@@ -43,13 +42,12 @@ class TypeClassMotivationTestSuite extends munit.FunSuite {
 
   test("Let's clean this up") {
     object Yeller:
-      def yell(string: String) = performYell(string)
-      def yell(i: Int) = performYell(i.toString)
-      def yell(boolean: Boolean) = performYell(boolean.toString)
+      def yell(string: String): String = performYell(string)
+      def yell(i: Int): String = performYell(i.toString)
+      def yell(boolean: Boolean): String = performYell(boolean.toString)
 
       private def performYell(s: String) = s.toUpperCase + "!"
-
-
+    
     assertEquals(Yeller.yell("hey"), "HEY!")
     assertEquals(Yeller.yell(212), "212!")
     assertEquals(Yeller.yell(true), "TRUE!")
@@ -70,22 +68,22 @@ class TypeClassMotivationTestSuite extends munit.FunSuite {
       def asString: String
 
     object Yeller:
-      def yell(yellee: YellerAdapter) = yellee.asString.toUpperCase + "!"
+      def yell(yellee: YellerAdapter): String = yellee.asString.toUpperCase + "!"
 
     case class StringYellerAdapter(string: String) extends YellerAdapter :
-      def asString = string
+      def asString: String = string
 
     case class IntYellerAdapter(int: Int) extends YellerAdapter:
-      override def asString = int.toString
+      override def asString: String = int.toString
 
     case class BooleanYellerAdapter(boolean: Boolean) extends YellerAdapter:
-      override def asString = boolean.toString
+      override def asString: String = boolean.toString
 
     /** What about some type we just ended up with? */
     case class SomeType(argument: String)
 
     case class SomeTypeYellerAdapter(someType: SomeType) extends YellerAdapter:
-      override def asString = someType.argument
+      override def asString: String = someType.argument
 
     assertEquals(Yeller.yell(StringYellerAdapter("hey")), "HEY!")
     assertEquals(Yeller.yell(IntYellerAdapter(212)), "212!")
@@ -120,7 +118,7 @@ class TypeClassMotivationTestSuite extends munit.FunSuite {
      * string.  If there's no ambiguity, the compiler uses it to make it work.
      * */
     object Yeller:
-      def yell[T](t: T)(using yellerAdapter: YellerAdapter[T]) = yellerAdapter.asString(t).toUpperCase + "!"
+      def yell[T](t: T)(using yellerAdapter: YellerAdapter[T]): String = yellerAdapter.asString(t).toUpperCase + "!"
 
 
     case class SomeType(argument: String)
@@ -148,7 +146,7 @@ class TypeClassMotivationTestSuite extends munit.FunSuite {
       def asString(t: T): String
 
     object Yeller:
-      def yell[T](t: T)(using yellerAdapter: YellerAdapter[T]) = yellerAdapter.asString(t).toUpperCase + "!"
+      def yell[T](t: T)(using yellerAdapter: YellerAdapter[T]): String = yellerAdapter.asString(t).toUpperCase + "!"
 
     case class SomeType(argument: String)
 
@@ -180,7 +178,7 @@ class TypeClassMotivationTestSuite extends munit.FunSuite {
       def asString(t: T): String
 
     object Yeller:
-      def yell[T](t: T)(using yellerAdapter: YellerAdapter[T]) = yellerAdapter.asString(t).toUpperCase + "!"
+      def yell[T](t: T)(using yellerAdapter: YellerAdapter[T]): String = yellerAdapter.asString(t).toUpperCase + "!"
 
     case class SomeType(argument: String)
 
@@ -192,8 +190,7 @@ class TypeClassMotivationTestSuite extends munit.FunSuite {
     given YellerAdapter[Int] = (t: Int) => t.toString
     given YellerAdapter[Boolean] = (t: Boolean) => t.toString
     given YellerAdapter[SomeType] = (t: SomeType) => t.argument
-
-
+    
     assertEquals(Yeller.yell("hey"), "HEY!")
     assertEquals(Yeller.yell(212), "212!")
     assertEquals(Yeller.yell(true), "TRUE!")
