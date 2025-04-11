@@ -155,7 +155,6 @@ class TypeClassMotivationTestSuite extends munit.FunSuite {
     /**
      * This makes sense.  Really, what we are doing is saying there's a way to make a given T into a string for our purposes.
      * And, that holds for *any value* of type T.  We don't need to have a label for it if we don't want it.
-     *
      * */
     given YellerAdapter[String] = new YellerAdapter[String]:
       override def asString(t: String): String = t
@@ -169,6 +168,31 @@ class TypeClassMotivationTestSuite extends munit.FunSuite {
     given YellerAdapter[SomeType] = new YellerAdapter[SomeType]:
       override def asString(t: SomeType): String = t.argument
     
+
+    assertEquals(Yeller.yell("hey"), "HEY!")
+    assertEquals(Yeller.yell(212), "212!")
+    assertEquals(Yeller.yell(true), "TRUE!")
+    assertEquals(Yeller.yell(SomeType("argument")), "ARGUMENT!")
+  }
+
+  test("You can even just give the canonical implementation for asString for a T...") {
+    trait YellerAdapter[T]:
+      def asString(t: T): String
+
+    object Yeller:
+      def yell[T](t: T)(using yellerAdapter: YellerAdapter[T]) = yellerAdapter.asString(t).toUpperCase + "!"
+
+    case class SomeType(argument: String)
+
+    /**
+     * The compiler can figure out that we are giving an implementation for asString(t: T) and use that for to create 
+     * (synthesize?) the class for use!
+     * */
+    given YellerAdapter[String] = (t: String) => t
+    given YellerAdapter[Int] = (t: Int) => t.toString
+    given YellerAdapter[Boolean] = (t: Boolean) => t.toString
+    given YellerAdapter[SomeType] = (t: SomeType) => t.argument
+
 
     assertEquals(Yeller.yell("hey"), "HEY!")
     assertEquals(Yeller.yell(212), "212!")
