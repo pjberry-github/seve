@@ -16,29 +16,25 @@ class TypeClassMotivationTestSuite extends munit.FunSuite {
   test("Yelling about two different types.") {
 
     /** Consider something that takes a string and yells it */
-    object Yeller_String {
+    object Yeller_String:
       def yell(string: String) = string.toUpperCase + "!"
-    }
 
     assertEquals(Yeller_String.yell("hey"), "HEY!")
 
     /** What about if we need to yell about Ints? */
-    object Yeller_Int {
+    object Yeller_Int:
       def yell(i: Int) = i.toString + "!"
-    }
 
     assertEquals(Yeller_Int.yell(212), "212!")
   }
 
   test("Hey, we are going to need to yell a whole bunch of types!") {
     /** At this point, we can use *adhoc polymorphism* via function overloading */
-    object Yeller {
+    object Yeller :
       def yell(string: String) = string.toUpperCase + "!"
-
       def yell(i: Int) = i.toString + "!"
-
       def yell(boolean: Boolean) = boolean.toString.toUpperCase + "!"
-    }
+
 
     assertEquals(Yeller.yell("hey"), "HEY!")
     assertEquals(Yeller.yell(212), "212!")
@@ -46,15 +42,13 @@ class TypeClassMotivationTestSuite extends munit.FunSuite {
   }
 
   test("Let's clean this up") {
-    object Yeller {
+    object Yeller:
       def yell(string: String) = performYell(string)
-
       def yell(i: Int) = performYell(i.toString)
-
       def yell(boolean: Boolean) = performYell(boolean.toString)
 
       private def performYell(s: String) = s.toUpperCase + "!"
-    }
+
 
     assertEquals(Yeller.yell("hey"), "HEY!")
     assertEquals(Yeller.yell(212), "212!")
@@ -72,32 +66,26 @@ class TypeClassMotivationTestSuite extends munit.FunSuite {
    * will provide the String to the Yeller
    */
   test("What's it look like with an adapter?") {
-    trait YellerAdapter {
+    trait YellerAdapter:
       def asString: String
-    }
 
-    object Yeller {
+    object Yeller:
       def yell(yellee: YellerAdapter) = yellee.asString.toUpperCase + "!"
-    }
 
-    case class StringYellerAdapter(string: String) extends YellerAdapter {
+    case class StringYellerAdapter(string: String) extends YellerAdapter :
       def asString = string
-    }
 
-    case class IntYellerAdapter(int: Int) extends YellerAdapter {
+    case class IntYellerAdapter(int: Int) extends YellerAdapter:
       override def asString = int.toString
-    }
 
-    case class BooleanYellerAdapter(boolean: Boolean) extends YellerAdapter {
+    case class BooleanYellerAdapter(boolean: Boolean) extends YellerAdapter:
       override def asString = boolean.toString
-    }
 
     /** What about some type we just ended up with? */
     case class SomeType(argument: String)
 
-    case class SomeTypeYellerAdapter(someType: SomeType) extends YellerAdapter {
+    case class SomeTypeYellerAdapter(someType: SomeType) extends YellerAdapter:
       override def asString = someType.argument
-    }
 
     assertEquals(Yeller.yell(StringYellerAdapter("hey")), "HEY!")
     assertEquals(Yeller.yell(IntYellerAdapter(212)), "212!")
@@ -122,9 +110,8 @@ class TypeClassMotivationTestSuite extends munit.FunSuite {
    */
   test("What's it look like with a Type Class?") {
     /** We make the type (string, int, whatever) for the adapter part of the signature */
-    trait YellerAdapter[T] {
+    trait YellerAdapter[T]:
       def asString(t: T): String
-    }
 
     /** If it's on the adapter, it needs to be on the Yeller, too.  Notice how the explicit argument t is the "primary"
      * argument and the contextual argument is what was the only argument--the YellerAdapter.
@@ -132,27 +119,23 @@ class TypeClassMotivationTestSuite extends munit.FunSuite {
      * Essentially, we are saying for a T, there's something in the contextual soup that can tell you how to make a
      * string.  If there's no ambiguity, the compiler uses it to make it work.
      * */
-    object Yeller {
+    object Yeller:
       def yell[T](t: T)(using yellerAdapter: YellerAdapter[T]) = yellerAdapter.asString(t).toUpperCase + "!"
-    }
+
 
     case class SomeType(argument: String)
 
-    given stringYellerAdapter: YellerAdapter[String] = new YellerAdapter[String] {
+    given stringYellerAdapter: YellerAdapter[String] = new YellerAdapter[String]:
       override def asString(t: String): String = t
-    }
 
-    given intYellerAdapter: YellerAdapter[Int] = new YellerAdapter[Int] {
+    given intYellerAdapter: YellerAdapter[Int] = new YellerAdapter[Int]:
       override def asString(t: Int): String = t.toString
-    }
 
-    given booleanYellerAdapter: YellerAdapter[Boolean] = new YellerAdapter[Boolean] {
+    given booleanYellerAdapter: YellerAdapter[Boolean] = new YellerAdapter[Boolean]:
       override def asString(t: Boolean): String = t.toString
-    }
 
-    given someTypeYellerAdapter: YellerAdapter[SomeType] = new YellerAdapter[SomeType] {
+    given someTypeYellerAdapter: YellerAdapter[SomeType] = new YellerAdapter[SomeType]:
       override def asString(t: SomeType): String = t.argument
-    }
 
     assertEquals(Yeller.yell("hey"), "HEY!")
     assertEquals(Yeller.yell(212), "212!")
@@ -161,36 +144,31 @@ class TypeClassMotivationTestSuite extends munit.FunSuite {
   }
 
   test("You don't even have to name the givens...") {
-    trait YellerAdapter[T] {
+    trait YellerAdapter[T]:
       def asString(t: T): String
-    }
 
-    object Yeller {
+    object Yeller:
       def yell[T](t: T)(using yellerAdapter: YellerAdapter[T]) = yellerAdapter.asString(t).toUpperCase + "!"
-    }
 
     case class SomeType(argument: String)
 
     /**
-     * This makes sense.  Really, what we are doing is saying there's a way to make a T into a string for our purposes.
-     * And, that holds for *all* T.  We don't need to have a label for it if we don't want it.
+     * This makes sense.  Really, what we are doing is saying there's a way to make a given T into a string for our purposes.
+     * And, that holds for *any value* of type T.  We don't need to have a label for it if we don't want it.
      *
      * */
-    given YellerAdapter[String] = new YellerAdapter[String] {
+    given YellerAdapter[String] = new YellerAdapter[String]:
       override def asString(t: String): String = t
-    }
 
-    given YellerAdapter[Int] = new YellerAdapter[Int] {
+    given YellerAdapter[Int] = new YellerAdapter[Int]:
       override def asString(t: Int): String = t.toString
-    }
 
-    given YellerAdapter[Boolean] = new YellerAdapter[Boolean] {
+    given YellerAdapter[Boolean] = new YellerAdapter[Boolean]: 
       override def asString(t: Boolean): String = t.toString
-    }
 
-    given YellerAdapter[SomeType] = new YellerAdapter[SomeType] {
+    given YellerAdapter[SomeType] = new YellerAdapter[SomeType]:
       override def asString(t: SomeType): String = t.argument
-    }
+    
 
     assertEquals(Yeller.yell("hey"), "HEY!")
     assertEquals(Yeller.yell(212), "212!")
