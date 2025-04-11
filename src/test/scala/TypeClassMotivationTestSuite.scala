@@ -34,7 +34,7 @@ class TypeClassMotivationTestSuite extends munit.FunSuite {
       def yell(string: String): String = string.toUpperCase + "!"
       def yell(i: Int): String = i.toString + "!"
       def yell(boolean: Boolean): String = boolean.toString.toUpperCase + "!"
-    
+
     assertEquals(Yeller.yell("hey"), "HEY!")
     assertEquals(Yeller.yell(212), "212!")
     assertEquals(Yeller.yell(true), "TRUE!")
@@ -47,7 +47,7 @@ class TypeClassMotivationTestSuite extends munit.FunSuite {
       def yell(boolean: Boolean): String = performYell(boolean.toString)
 
       private def performYell(s: String) = s.toUpperCase + "!"
-    
+
     assertEquals(Yeller.yell("hey"), "HEY!")
     assertEquals(Yeller.yell(212), "212!")
     assertEquals(Yeller.yell(true), "TRUE!")
@@ -160,12 +160,12 @@ class TypeClassMotivationTestSuite extends munit.FunSuite {
     given YellerAdapter[Int] = new YellerAdapter[Int]:
       override def asString(t: Int): String = t.toString
 
-    given YellerAdapter[Boolean] = new YellerAdapter[Boolean]: 
+    given YellerAdapter[Boolean] = new YellerAdapter[Boolean]:
       override def asString(t: Boolean): String = t.toString
 
     given YellerAdapter[SomeType] = new YellerAdapter[SomeType]:
       override def asString(t: SomeType): String = t.argument
-    
+
 
     assertEquals(Yeller.yell("hey"), "HEY!")
     assertEquals(Yeller.yell(212), "212!")
@@ -183,14 +183,14 @@ class TypeClassMotivationTestSuite extends munit.FunSuite {
     case class SomeType(argument: String)
 
     /**
-     * The compiler can figure out that we are giving an implementation for asString(t: T) and use that for to create 
-     * (synthesize?) the class for use!
+     * The compiler can figure out that we are giving an implementation for asString(t: T) and use that for to create
+     * (synthesize) the class for use!
      * */
     given YellerAdapter[String] = (t: String) => t
     given YellerAdapter[Int] = (t: Int) => t.toString
     given YellerAdapter[Boolean] = (t: Boolean) => t.toString
     given YellerAdapter[SomeType] = (t: SomeType) => t.argument
-    
+
     assertEquals(Yeller.yell("hey"), "HEY!")
     assertEquals(Yeller.yell(212), "212!")
     assertEquals(Yeller.yell(true), "TRUE!")
