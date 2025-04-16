@@ -196,4 +196,112 @@ class TypeClassMotivationTestSuite extends munit.FunSuite {
     assertEquals(Yeller.yell(true), "TRUE!")
     assertEquals(Yeller.yell(SomeType("argument")), "ARGUMENT!")
   }
+
+  /**
+   * So, that's nice and all, but it isn't really more compelling than just making adapter, innit?
+   *
+   * Where the Type Classes really start to shine is when we let it figure out how to make an instance.
+   *
+   * Before we do that, let's work on what it means to compose YellAdapters
+   *
+   What should a given case class's YellerAdapter look like?
+   *
+   * For our purposes, let's define it such for any case class, it's
+   * 1) the first argument as string then concatenated with a space and the second argument, ..., concatenated with a
+   *    space and the Nth argument.
+   * 2) the result of (1) uppercased
+   *
+   * What if an argument itself has arguments?
+   *
+   * Good question.  We'll just recursively apply the rules.
+   *
+   * We'd want something like this:
+   *
+   * case class SomeType(argument: String)
+   * case class AnotherType(someType: SomeType, int: Int)
+   *
+   * val anotherType = AnotherType(SomeType("argument"), 212)
+   *
+   * YellerAdapter[AnotherType] =  compose(YellerAdapter[SomeType], YellerAdapter[Int])
+   *
+   * We will defer on the implementation of 'compose' for just a moment.  But we want to say that
+   * in English, if we have a way to describe all the individual types, we have a way to describe the composite type
+   *
+   * One way describe this (and definitely not the only) way is
+   * that for a type T, which has an U and V we want to have
+   * YellerAdapter[T] = compose(YellerAdapter[U], YellerAdapter[V])
+   *
+   * or
+   *
+   * YellerAdapter[T] = compose[U, V](YellerAdapter[U], YellerAdapter[V])
+   *
+   */
+  test("Let's see what compose looks like") {
+    trait YellerAdapter[T]:
+      def asString(t: T): String
+
+      /**
+       * I'm going to use an existential type because I have no way of saying right now what a U and a V make when they
+       * are in a YellerAdpater.
+       */
+
+      def compose[U, V](uYellerAdapter: YellerAdapter[U], vYellerAdapter: YellerAdapter[V]): YellerAdapter[_] = {
+        ???
+      }
+  }
+
+  test("Let's flesh this out some more") {
+    trait YellerAdapter[T]:
+      def asString(t: T): String
+
+    /**
+     * What does it look like if we try to implement the steps?
+     */
+    def compose[U, V](uYellerAdapter: YellerAdapter[U], vYellerAdapter: YellerAdapter[V]): YellerAdapter[_] = {
+      val string = uYellerAdapter.asString(???) + " " + vYellerAdapter.asString(???)
+      val upperCased = string.toUpperCase
+      ???
+    }
+  }
+
+  test("how do we get the values for the U and V?") {
+    /** Our trait needs to change some */
+    trait YellerAdapter[T]:
+      val t: T
+      def asString(t: T): String
+
+    /**
+     * What does it look like if we try to implement the steps?
+     */
+    def compose[U, V](uYellerAdapter: YellerAdapter[U], vYellerAdapter: YellerAdapter[V]): YellerAdapter[_] = {
+      val string = uYellerAdapter.asString(uYellerAdapter.t) + " " + vYellerAdapter.asString(vYellerAdapter.t)
+      val upperCased = string.toUpperCase
+      new YellerAdapter[String](){
+        val t: String = upperCased
+        def asString(t: String): String = t
+      }
+    }
+  }
+
+  test("Well that looks stupid.") {
+    /** Our trait needs to change some */
+    trait YellerAdapter[T]:
+      val t: T
+      def asString(): String
+
+    /**
+     * What does it look like if we try to implement the steps?
+     */
+    def compose[U, V](uYellerAdapter: YellerAdapter[U], vYellerAdapter: YellerAdapter[V]): YellerAdapter[_] = {
+      val string = uYellerAdapter.asString() + " " + vYellerAdapter.asString()
+      val upperCased = string.toUpperCase
+      new YellerAdapter[String]() {
+        val t: String = upperCased
+
+        def asString(): String = t
+      }
+    }
+  }
+
+
 }
