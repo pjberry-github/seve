@@ -1,3 +1,4 @@
+import scala.:+
 import scala.compiletime.summonInline
 import scala.deriving.Mirror
 
@@ -484,5 +485,19 @@ class TypeClassMotivationTestSuite extends munit.FunSuite {
     assertEquals(yelled, "HEY TRUE!")
   }
 
+  test("We don't want tuples all the time.  We want to go from a product type, to a tuple, to the string!  Let's try that.") {
+    inline def productToTupleSafe[P <: Product](p: P): Tuple =
+      inline summonInline[Mirror.ProductOf[P]] match
+        case m: Mirror.ProductOf[P] =>
+          val elements = Tuple.fromProduct(p)
+          elements
+
+    case class SomeType(argument: String)
+    case class AnotherType(someType: SomeType, int: Int)
+
+    val tuple = productToTupleSafe(AnotherType(SomeType("argument"), 212))
+
+    assertEquals(tuple, (SomeType("argument"), 212))
+  }
 
 }
