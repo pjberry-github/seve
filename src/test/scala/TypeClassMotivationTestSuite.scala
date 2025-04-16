@@ -372,4 +372,33 @@ class TypeClassMotivationTestSuite extends munit.FunSuite {
     assertEquals(composed.asString(), "HEY TRUE")
   }
 
+  test("Can we possibly make this nicer?") {
+    trait YellerAdapter[T]:
+      def asString(): String
+
+      def compose[U](u: YellerAdapter[U]) =
+        val string = this.asString() + " " + u.asString()
+        val upperCased = string.toUpperCase
+        YellerAdapter(upperCased)
+    
+    object YellerAdapter:
+      def apply[T](value: T)(using f: T => String): YellerAdapter[String] =
+        new YellerAdapter[String]():
+          def asString(): String = f(value)
+
+    object Yeller:
+      def yell[T](t: T)(using f: T => String): String =
+        YellerAdapter(t).asString() + "!"
+
+      def yell[T, V](t: T, v: V)(using f: T => String, g: V => String): String =
+        YellerAdapter(t).compose(YellerAdapter(v)).asString() + "!"
+
+    given (Boolean => String) = (t: Boolean) => t.toString
+
+    val composed = Yeller.yell("hey", true)
+
+    assertEquals(composed, "HEY TRUE!")
+  }
+
+
 }
