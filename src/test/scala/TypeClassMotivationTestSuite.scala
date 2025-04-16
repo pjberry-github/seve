@@ -380,7 +380,7 @@ class TypeClassMotivationTestSuite extends munit.FunSuite {
         val string = this.asString() + " " + u.asString()
         val upperCased = string.toUpperCase
         YellerAdapter(upperCased)
-    
+
     object YellerAdapter:
       def apply[T](value: T)(using f: T => String): YellerAdapter[String] =
         new YellerAdapter[String]():
@@ -398,6 +398,90 @@ class TypeClassMotivationTestSuite extends munit.FunSuite {
     val composed = Yeller.yell("hey", true)
 
     assertEquals(composed, "HEY TRUE!")
+  }
+
+  test("We can't keep going with T, V, etc.  We need to take something that is itself composed") {
+    trait YellerAdapter[T]:
+      def asString(): String
+
+      def compose[U](u: YellerAdapter[U]) =
+        val string = this.asString() + " " + u.asString()
+        val upperCased = string.toUpperCase
+        YellerAdapter(upperCased)
+
+    object YellerAdapter:
+      def apply[T](value: T)(using f: T => String): YellerAdapter[String] =
+        new YellerAdapter[String]():
+          def asString(): String = f(value)
+
+    object Yeller:
+      def yell[T](t: T)(using f: T => String): String =
+        YellerAdapter(t).asString() + "!"
+
+      inline def yell(tuple: Tuple): String =
+        yellTuple(tuple, YellerAdapter("")).asString() + "!"
+
+      inline def yellTuple(tuple: Tuple, yellerAdapter: YellerAdapter[String]): YellerAdapter[String] = {
+        inline tuple match {
+          case EmptyTuple =>
+            yellerAdapter
+          case tup: (h *: t) =>
+            val myGiven = compiletime.summonInline[h => String]
+            val hAdapter = YellerAdapter(tup.head)(using myGiven)
+            yellTuple(tup.tail, yellerAdapter.compose(hAdapter))
+        }
+      }
+
+
+    given (Boolean => String) = (t: Boolean) => t.toString
+
+    val yelled = Yeller.yell(("hey", true))
+
+    assertEquals(yelled, " HEY TRUE!")  // We don't want this!
+  }
+
+  test("Let's handle the initial case.") {
+    trait YellerAdapter[T]:
+      def asString(): String
+
+      def compose[U](u: YellerAdapter[U]): YellerAdapter[String] =
+        val string = this.asString() + " " + u.asString()
+        val upperCased = string.toUpperCase
+        YellerAdapter(upperCased)
+
+    object YellerAdapter:
+      def apply[T](value: T)(using f: T => String): YellerAdapter[String] =
+        new YellerAdapter[String]():
+          def asString(): String = f(value)
+
+    object Yeller:
+      def yell[T](t: T)(using f: T => String): String =
+        YellerAdapter(t).asString() + "!"
+
+      inline def yell(tuple: Tuple): String =
+        yellTuple(tuple, None).map(_.asString() + "!").getOrElse("")
+
+      inline def yellTuple(tuple: Tuple, yellerAdapterOption: Option[YellerAdapter[String]] = None): Option[YellerAdapter[String]] = {
+        inline tuple match {
+          case EmptyTuple =>
+            yellerAdapterOption
+          case tup: (h *: t) =>
+            val myGiven = compiletime.summonInline[h => String]
+            val hAdapter = YellerAdapter(tup.head)(using myGiven)
+            yellerAdapterOption match
+              case Some(yellerAdapter) =>
+                yellTuple(tup.tail, Some(yellerAdapter.compose(hAdapter)))
+              case None =>
+                yellTuple(tup.tail, Some(hAdapter))
+        }
+      }
+
+
+    given (Boolean => String) = (t: Boolean) => t.toString
+
+    val yelled = Yeller.yell(("hey", true))
+
+    assertEquals(yelled, "HEY TRUE!")
   }
 
 
