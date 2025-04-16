@@ -303,5 +303,37 @@ class TypeClassMotivationTestSuite extends munit.FunSuite {
     }
   }
 
+  test("Let's try it for real") {
+    trait YellerAdapter[T]:
+      val t: T
+      def asString(): String
+
+    object Yeller:
+      def yell[T](t: T)(using yellerAdapter: YellerAdapter[T]): String = yellerAdapter.asString().toUpperCase + "!"
+
+
+    def compose[U, V](uYellerAdapter: YellerAdapter[U], vYellerAdapter: YellerAdapter[V]): YellerAdapter[_] = {
+      val string = uYellerAdapter.asString() + " " + vYellerAdapter.asString()
+      val upperCased = string.toUpperCase
+      new YellerAdapter[String]() {
+        val t: String = upperCased
+
+        def asString(): String = t
+      }
+    }
+
+    case class StringYellerAdapter(t: String) extends YellerAdapter[String] {
+      override def asString(): String = t
+    }
+
+    case class BooleanYellerAdapter(t: Boolean) extends YellerAdapter[Boolean] {
+      override def asString(): String = t.toString
+    }
+
+    val composed = compose(StringYellerAdapter("hey"), BooleanYellerAdapter(true))
+
+
+    assertEquals(composed.asString(), "HEY TRUE")
+  }
 
 }
