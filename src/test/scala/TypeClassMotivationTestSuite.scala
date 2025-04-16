@@ -245,9 +245,8 @@ class TypeClassMotivationTestSuite extends munit.FunSuite {
        * are in a YellerAdpater.
        */
 
-      def compose[U, V](uYellerAdapter: YellerAdapter[U], vYellerAdapter: YellerAdapter[V]): YellerAdapter[_] = {
+      def compose[U, V](uYellerAdapter: YellerAdapter[U], vYellerAdapter: YellerAdapter[V]): YellerAdapter[_] =
         ???
-      }
   }
 
   test("Let's flesh this out some more") {
@@ -257,11 +256,10 @@ class TypeClassMotivationTestSuite extends munit.FunSuite {
     /**
      * What does it look like if we try to implement the steps?
      */
-    def compose[U, V](uYellerAdapter: YellerAdapter[U], vYellerAdapter: YellerAdapter[V]): YellerAdapter[_] = {
+    def compose[U, V](uYellerAdapter: YellerAdapter[U], vYellerAdapter: YellerAdapter[V]): YellerAdapter[_] =
       val string = uYellerAdapter.asString(???) + " " + vYellerAdapter.asString(???)
       val upperCased = string.toUpperCase
       ???
-    }
   }
 
   test("how do we get the values for the U and V?") {
@@ -273,14 +271,13 @@ class TypeClassMotivationTestSuite extends munit.FunSuite {
     /**
      * What does it look like if we try to implement the steps?
      */
-    def compose[U, V](uYellerAdapter: YellerAdapter[U], vYellerAdapter: YellerAdapter[V]): YellerAdapter[_] = {
+    def compose[U, V](uYellerAdapter: YellerAdapter[U], vYellerAdapter: YellerAdapter[V]): YellerAdapter[_] =
       val string = uYellerAdapter.asString(uYellerAdapter.t) + " " + vYellerAdapter.asString(vYellerAdapter.t)
       val upperCased = string.toUpperCase
-      new YellerAdapter[String](){
+      new YellerAdapter[String]():
         val t: String = upperCased
         def asString(t: String): String = t
-      }
-    }
+
   }
 
   test("Well that looks stupid.") {
@@ -292,15 +289,12 @@ class TypeClassMotivationTestSuite extends munit.FunSuite {
     /**
      * What does it look like if we try to implement the steps?
      */
-    def compose[U, V](uYellerAdapter: YellerAdapter[U], vYellerAdapter: YellerAdapter[V]): YellerAdapter[_] = {
+    def compose[U, V](uYellerAdapter: YellerAdapter[U], vYellerAdapter: YellerAdapter[V]): YellerAdapter[_] =
       val string = uYellerAdapter.asString() + " " + vYellerAdapter.asString()
       val upperCased = string.toUpperCase
-      new YellerAdapter[String]() {
+      new YellerAdapter[String]():
         val t: String = upperCased
-
         def asString(): String = t
-      }
-    }
   }
 
   test("Let's try it for real") {
@@ -308,26 +302,21 @@ class TypeClassMotivationTestSuite extends munit.FunSuite {
       val t: T
       def asString(): String
 
-    def compose[U, V](uYellerAdapter: YellerAdapter[U], vYellerAdapter: YellerAdapter[V]): YellerAdapter[_] = {
+    def compose[U, V](uYellerAdapter: YellerAdapter[U], vYellerAdapter: YellerAdapter[V]): YellerAdapter[_] =
       val string = uYellerAdapter.asString() + " " + vYellerAdapter.asString()
       val upperCased = string.toUpperCase
-      new YellerAdapter[String]() {
+      new YellerAdapter[String]():
         val t: String = upperCased
-
         def asString(): String = t
-      }
-    }
 
-    case class StringYellerAdapter(t: String) extends YellerAdapter[String] {
+    case class StringYellerAdapter(t: String) extends YellerAdapter[String]:
       override def asString(): String = t
-    }
 
-    case class BooleanYellerAdapter(t: Boolean) extends YellerAdapter[Boolean] {
+    case class BooleanYellerAdapter(t: Boolean) extends YellerAdapter[Boolean]:
       override def asString(): String = t.toString
-    }
 
     val composed = compose(StringYellerAdapter("hey"), BooleanYellerAdapter(true))
-    
+
     assertEquals(composed.asString(), "HEY TRUE")
   }
 
@@ -339,19 +328,18 @@ class TypeClassMotivationTestSuite extends munit.FunSuite {
         val string = this.asString() + " " + u.asString()
         val upperCased = string.toUpperCase
 
-        new YellerAdapter[String]() {
+        new YellerAdapter[String]():
           val t: String = upperCased
           def asString(): String = t
-        }
       }
 
-    case class StringYellerAdapter(t: String) extends YellerAdapter[String] {
+    case class StringYellerAdapter(t: String) extends YellerAdapter[String]:
       override def asString(): String = t
-    }
 
-    case class BooleanYellerAdapter(t: Boolean) extends YellerAdapter[Boolean] {
+
+    case class BooleanYellerAdapter(t: Boolean) extends YellerAdapter[Boolean]:
       override def asString(): String = t.toString
-    }
+
 
     val composed = StringYellerAdapter("hey").compose(BooleanYellerAdapter(true))
 
