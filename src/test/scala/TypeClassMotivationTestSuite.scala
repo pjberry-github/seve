@@ -320,7 +320,7 @@ class TypeClassMotivationTestSuite extends munit.FunSuite {
     assertEquals(composed.asString(), "HEY TRUE")
   }
 
-  test("Wait. That's dumb looking, too.") {
+  test("Wait. That's dumb looking, too.  Let's make compose a member of the trait.") {
     trait YellerAdapter[T]:
       val t: T
       def asString(): String
@@ -336,10 +336,36 @@ class TypeClassMotivationTestSuite extends munit.FunSuite {
     case class StringYellerAdapter(t: String) extends YellerAdapter[String]:
       override def asString(): String = t
 
-
     case class BooleanYellerAdapter(t: Boolean) extends YellerAdapter[Boolean]:
       override def asString(): String = t.toString
 
+
+    val composed = StringYellerAdapter("hey").compose(BooleanYellerAdapter(true))
+
+    assertEquals(composed.asString(), "HEY TRUE")
+  }
+
+  test("Still not pleased with this.  The t is only used to make a new adapter. Let's change it.") {
+    trait YellerAdapter[T]:
+      def asString(): String
+
+      def compose[U](u: YellerAdapter[U]) =
+        val string = this.asString() + " " + u.asString()
+        val upperCased = string.toUpperCase
+        YellerAdapter(upperCased)
+
+
+    object YellerAdapter:
+      def apply[T](value: T)(using f: T => String): YellerAdapter[String] =
+        new YellerAdapter[String]():
+          def asString(): String = f(value)
+
+
+    case class StringYellerAdapter(t: String) extends YellerAdapter[String]:
+      override def asString(): String = t
+
+    case class BooleanYellerAdapter(t: Boolean) extends YellerAdapter[Boolean]:
+      override def asString(): String = t.toString
 
     val composed = StringYellerAdapter("hey").compose(BooleanYellerAdapter(true))
 
