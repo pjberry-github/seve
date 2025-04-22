@@ -1,5 +1,6 @@
 import scala.compiletime.{erasedValue, summonInline}
 import scala.deriving.Mirror
+import scala.runtime.TupleMirror
 
 class TupleOperationsTestSuite extends munit.FunSuite {
 
@@ -98,5 +99,84 @@ class TupleOperationsTestSuite extends munit.FunSuite {
 
   }
 
-  
+  test("Let's just try tuples of tuples, at compile time.  Showing work part 1") {
+    inline def processTuple[T <: Tuple](t: T, returnTuple: Tuple): Tuple =
+      inline t match
+        case _: EmptyTuple =>
+          returnTuple
+        case net: NonEmptyTuple =>
+          val head = net.head
+          println(head.getClass())  // put this here to show that it did match:  class scala.Tuple2
+
+          inline head match
+            case headThatIsTuple: (h *: t) =>   // need the deconstruction of the type to progress.  Tuple2 ain't gonna cut it.
+              println("headThatIsTuple")
+              val headOfHead = headThatIsTuple.head
+              println(headOfHead )
+              processTuple(headThatIsTuple.tail, returnTuple :* headOfHead)
+            case p: Product =>
+              println("Product")
+              EmptyTuple
+            case notAProduct =>
+              println("Not a product")
+              processTuple(EmptyTuple, returnTuple :* notAProduct)
+
+    val tupleToProcess = (("a", 1), 1)
+    val processed = processTuple(tupleToProcess, EmptyTuple)
+    println(processed)
+  }
+
+  test("Let's just try tuples of tuples, at compile time.  Showing work part 2") {
+    inline def processTuple[T <: Tuple](t: T, returnTuple: Tuple): Tuple =
+      inline t match
+        case _: EmptyTuple =>
+          returnTuple
+        case net: NonEmptyTuple =>
+          val head = net.head
+          println(head.getClass()) // put this here to show that it did match:  class scala.Tuple2
+
+          inline head match
+            case headThatIsTuple: (h *: t) => // need the deconstruction of the type to progress.  Tuple2 ain't gonna cut it.
+              println("headThatIsTuple")
+              val headOfHead = headThatIsTuple.head
+              println(headOfHead)
+              processTuple(headThatIsTuple.tail, returnTuple :* headOfHead) ++ processTuple(net.tail, returnTuple)
+            case p: Product =>
+              println("Product")
+              EmptyTuple
+            case notAProduct =>
+              println("Not a product")
+              processTuple(EmptyTuple, returnTuple :* notAProduct)
+
+
+
+    val tupleToProcess = (("a", 1), 1)
+    val processed = processTuple(tupleToProcess, EmptyTuple)
+    println(processed)
+  }
+
+
+  test("Let's just try tuples of tuples, at compile time.  Showing work part 3, clean up") {
+    inline def processTuple[T <: Tuple](t: T, returnTuple: Tuple): Tuple =
+      inline t match
+        case _: EmptyTuple =>
+          returnTuple
+        case net: NonEmptyTuple =>
+          val head = net.head
+          inline head match
+            case headThatIsTuple: (h *: t) =>
+              val headOfHead = headThatIsTuple.head
+              processTuple(headThatIsTuple.tail, returnTuple :* headOfHead) ++ processTuple(net.tail, returnTuple)
+            case p: Product =>
+              println("Product")
+              EmptyTuple
+            case notAProduct =>
+              processTuple(EmptyTuple, returnTuple :* notAProduct)
+
+
+    val tupleToProcess = (("a", 1), 1)
+    val processed = processTuple(tupleToProcess, EmptyTuple)
+
+    assertEquals(processed, ("a", 1, 1))
+  }
 }
