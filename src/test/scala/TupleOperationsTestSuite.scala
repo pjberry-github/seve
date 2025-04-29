@@ -209,4 +209,45 @@ class TupleOperationsTestSuite extends munit.FunSuite {
 
     assertEquals(processed, ((10, 9, 8), 1))
   }
+
+  test("Ok! Let's robustify it.") {
+    inline def processTuple[T <: Tuple](t: T, returnTuple: Tuple): Tuple =
+      inline t match
+        case _: EmptyTuple =>
+          returnTuple
+        case nonEmptyTuple: NonEmptyTuple =>
+          val head = nonEmptyTuple.head
+          inline head match
+            case headThatIsTuple: (h *: t) =>
+              val headOfHead = headThatIsTuple.head
+              println(s"headOfHead: $headOfHead")
+
+              processTuple(nonEmptyTuple.tail, returnTuple :* headThatIsTuple)
+            case headThatIsAProduct: Product =>
+              println(s"Product $headThatIsAProduct")
+              println(headThatIsAProduct.getClass())
+              val summoned = summonInline[Mirror.ProductOf[headThatIsAProduct.type]] //remember, we need the Mirror of the Product
+              println(summoned)
+              val tuple = Tuple.fromProductTyped(headThatIsAProduct)(using summoned)
+              println(tuple)
+              processTuple(nonEmptyTuple.tail, returnTuple :* tuple)
+            case notAProduct =>
+              println(s"notAProduct: $notAProduct")
+              println(s"nonEmptyTuple.tail: ${nonEmptyTuple.tail}")
+              processTuple(nonEmptyTuple.tail, returnTuple :* notAProduct)
+
+    case class SomeCaseClass(a: Int, b: Int, c: Int)
+
+    val tupleToProcessOne = (SomeCaseClass(10, 9, 8), 1)
+    assertEquals(processTuple(tupleToProcessOne, EmptyTuple), ((10, 9, 8), 1))
+
+    val tupleToProcessTwo = (10, (9, 8), 1)
+    assertEquals(processTuple(tupleToProcessTwo, EmptyTuple), (10, (9, 8), 1))
+
+    val tupleToProcessThree = (10, 9, (8), 1)
+    assertEquals(processTuple(tupleToProcessThree, EmptyTuple), (10, 9, (8), 1))
+
+    val tupleToProcessFour = (10, 9, (8), SomeCaseClass(10, 9, 8))
+    assertEquals(processTuple(tupleToProcessFour, EmptyTuple), (10, 9, (8), (10, 9, 8)))
+  }
 }
