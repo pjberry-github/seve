@@ -179,4 +179,34 @@ class TupleOperationsTestSuite extends munit.FunSuite {
 
     assertEquals(processed, ("a", 1, 1))
   }
+
+  test("Let's just try tuples of primitives, tuples, or case classes, at compile time.") {
+    inline def processTuple[T <: Tuple](t: T, returnTuple: Tuple): Tuple =
+      inline t match
+        case _: EmptyTuple =>
+          returnTuple
+        case nonEmptyTuple: NonEmptyTuple =>
+          val head = nonEmptyTuple.head
+          inline head match
+            case headThatIsTuple: (h *: t) =>
+              val headOfHead = headThatIsTuple.head
+              processTuple(headThatIsTuple.tail, returnTuple :* headOfHead) ++ processTuple(nonEmptyTuple.tail, returnTuple)
+            case headThatIsAProduct: Product =>
+              println(s"Product $headThatIsAProduct")
+              println(headThatIsAProduct.getClass())
+              val summoned = summonInline[Mirror.ProductOf[headThatIsAProduct.type]] //remember, we need the Mirror of the Product
+              println(summoned)
+              val tuple = Tuple.fromProductTyped(headThatIsAProduct)(using summoned)
+              println(tuple)
+              processTuple(nonEmptyTuple.tail, returnTuple :* tuple)
+            case notAProduct =>
+              processTuple(EmptyTuple, returnTuple :* notAProduct)
+
+    case class SomeCaseClass(a: Int, b: Int, c: Int)
+
+    val tupleToProcess = (SomeCaseClass(10, 9, 8), 1)
+    val processed = processTuple(tupleToProcess, EmptyTuple)
+
+    assertEquals(processed, ((10, 9, 8), 1))
+  }
 }
